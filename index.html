@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript">
+        function createPolygonOnMap(){
+            var old_center_lat = 4.813406785;
+            var old_center_long = 31.536932689;
+            var old_vertices = [
+                [4.819039828, 31.547581962],
+                [4.80971472, 31.545957171],
+                [4.811625903, 31.535239507],
+                [4.811616009, 31.535075195],
+                [4.811734982, 31.532564864],
+                [4.811673116, 31.531801057],
+                [4.805156367, 31.531691205],
+                [4.80523132, 31.528839421],
+                [4.807880057, 31.524814959],
+                [4.813630937, 31.524952333],
+                [4.813492928, 31.535433066],
+                [4.813511071, 31.535590398],
+                [4.81859977, 31.536523808],
+                [4.820971411, 31.536984543],
+                [4.820112711, 31.54169049],
+                [4.819039828, 31.547581962],
+            ];
+
+            var new_center_lat = parseFloat(document.getElementsByName("latitude")[0].value);
+            var new_center_long = parseFloat(document.getElementsByName("longitude")[0].value);
+
+            var center_lat_shift = new_center_lat - old_center_lat;
+            var center_long_shift = new_center_long - old_center_long;
+
+            var new_vertices = [];
+            for (i in old_vertices) {
+                var old_vertex = old_vertices[i];
+                var old_lat = old_vertex[0];
+                var old_long = old_vertex[1];
+
+                var left_of_center_long = old_long < old_center_long;
+                var old_dist_from_center_long = Math.abs(old_long - old_center_long);
+
+                var new_lat = old_lat + center_lat_shift;
+
+                var old_lat_radians = (old_lat*Math.PI)/180.0;
+                var old_long_radians = (old_long*Math.PI)/180.0;
+                var old_dist_from_center_long_radians = (old_dist_from_center_long*Math.PI)/180.0;
+                var new_lat_radians = (new_lat*Math.PI)/180.0;
+
+                var a = Math.sin(new_lat_radians)**2;
+                var b1 = Math.sin(old_lat_radians)**2;
+                var b2 = Math.cos(old_lat_radians)**2 * Math.cos(old_dist_from_center_long_radians);
+                var b = b1 + b2;
+                var c = Math.cos(new_lat_radians)**2;
+
+                var new_dist_from_center_long_radians = Math.acos((b - a)/c);
+                var new_dist_from_center_long = (180*new_dist_from_center_long_radians)/Math.PI;
+                var change_in_dist_from_center_long = new_dist_from_center_long - old_dist_from_center_long;
+
+                var new_long = old_long + center_long_shift;
+                if (left_of_center_long) {
+                    new_long = new_long - change_in_dist_from_center_long;
+                    if (new_long < -180.0) {
+                        new_long += 360.0;
+                    }
+                } else {
+                    new_long = new_long + change_in_dist_from_center_long;
+                    if (new_long > +180.0) {
+                        new_long -= 360.0;
+                    }
+                }
+
+                var new_vertex = [new_lat, new_long];
+                new_vertices.push(new_vertex);
+            }
+
+            console.log(new_vertices);
+
+            var map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 14,
+                center: {lat: new_center_lat, lng: new_center_long},
+                mapTypeId: "satellite",
+                mapTypeControlOptions: {
+                    mapTypeIds: ["roadmap", "terrain", "satellite"],
+                },
+                streetViewControl: false,
+            });
+
+            var bounds = new google.maps.LatLngBounds();
+            var polygonCoords = [];
+            for (i in new_vertices) {
+                var new_vertex = new_vertices[i];
+                var new_lat = new_vertex[0];
+                var new_long = new_vertex[1];
+
+                var lat_long_obj = {lat: new_lat, lng: new_long}
+
+                bounds.extend(lat_long_obj);
+                polygonCoords.push(lat_long_obj);
+            }
+
+            var polygon = new google.maps.Polygon({
+                paths: polygonCoords,
+                strokeColor: "#FF0000",
+                strokeOpacity: 1,
+                strokeWeight: 2,
+                fillColor: "#FFFFFF",
+                fillOpacity: 0.35,
+            });
+            polygon.setMap(map);
+            map.fitBounds(bounds);
+        }
+    </script>
+    <link rel="stylesheet" href="main.css"></link>
+</head>
+<body>
+    <div id="user-input">
+        <form action="javascript:createPolygonOnMap()">
+            <div id="text-inputs">
+                <div id="latitude-input">
+                    Latitude (decimal)
+                    <br>
+                    <input type="text" name="latitude">
+                </div>
+                <div id="longitude-input">
+                    Longitude (decimal)
+                    <br>
+                    <input type="text" name="longitude">
+                </div>
+            </div>
+            <div id="create-polygon-button">
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+        <div id="response-message">
+            South Campus Center
+            <br>
+            (47.649616, -122.310798)
+            <br>
+            <br>
+            Juba Refugee Camp
+            <br>
+            (4.813406, 31.536932)
+        </div>
+    </div>
+    <div id="refugee-camp-static-map">
+        <div id="static-map">
+            <img src="juba_refugee_camp.png" alt="Juba Refugee Camp" width="274" height="204">
+        </div>
+        <div id="short-map-description">
+            <b>Juba Refugee Camp, South Sudan</b>
+        </div>
+    </div>
+    <div id="user-interactive-map">
+        <div id="map"></div>
+        <script>
+            var map;
+            function initMap() {
+                map = new google.maps.Map(document.getElementById("map"), {
+                    center: {lat: 47.649616, lng: -122.310798},
+                    zoom: 14,
+                    mapTypeId: "satellite",
+                    mapTypeControlOptions: {
+                        mapTypeIds: ["roadmap", "terrain", "satellite"],
+                    },
+                    streetViewControl: false,
+                });
+            }
+        </script>
+        <script id="map-script" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeRXzR5Jpbbh1PvlDi4Y2YspLjle7dkXo&callback=initMap" async defer></script>
+    </div>
+    <div id="donate-to-un">
+        <div id="unhcr-logo">
+            <img src="unhcr.png" alt="UNHCR logo" width="100" height="100">
+        </div>
+        <div id="unhcr-donate-link">
+            <a href="https://donate.unhcr.org/" target="_blank">Donate</a>
+        </div>
+    </div>
+</body>
+</html>
